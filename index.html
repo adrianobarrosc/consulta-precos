@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Consulta de Preços Públicos — PNCP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#0D2B4E; --pri:#0B5CAD; --pri-soft:#E8F1FB; --pri-line:#BFD6F0;
+    --bg:#F3F5F8; --card:#FFFFFF; --line:#E3E7EE; --ink:#1C2430; --mut:#5D6878; --mut2:#9AA4B2;
+    --ok:#127A3E; --okbg:#E5F5EC; --warn:#9A5B00; --warnbg:#FFF3DC; --bad:#B3261E; --badbg:#FDECEB;
+    --note:#FFF6E3; --noteline:#F0D9A8; --noteink:#5A3D00;
+    --shadow:0 6px 24px rgba(13,43,77,.07);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+  button,input,select{font:inherit}
+  a{color:var(--pri)}
+
+  /* Cabeçalho */
+  .top{background:var(--navy);color:#fff;padding:20px 48px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:14px}
+  .brand h1{margin:0;font-size:20px;font-weight:700}
+  .brand p{margin:2px 0 0;font-size:13px;color:#AFC3DA}
+  .status-row{display:flex;align-items:center;gap:12px;font-size:13px;color:#D5E1EE;font-weight:500}
+  .live{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.1);border-radius:999px;padding:7px 14px 7px 12px;font-size:12px;color:#fff}
+  .live i{width:8px;height:8px;border-radius:50%;background:#9AA4B2;display:block}
+  .live.on i{background:#7CE0A8} .live.off i{background:#FF8A80}
+
+  main{max-width:1440px;margin:0 auto;padding:32px 48px 56px;display:flex;flex-direction:column;gap:24px}
+
+  /* Busca */
+  .search{background:var(--card);border-radius:20px;box-shadow:var(--shadow);padding:28px 32px;display:flex;flex-direction:column;gap:18px}
+  .search h2{margin:0;font-size:24px;color:var(--navy);font-weight:700}
+  .search .lead{margin:4px 0 0;color:var(--mut)}
+  .srow{display:flex;gap:12px;align-items:stretch}
+  .field{flex:1;display:flex;align-items:center;gap:12px;background:#F7F9FC;border:2px solid var(--pri);border-radius:12px;padding:0 18px}
+  .field input{flex:1;border:none;background:transparent;font-size:17px;font-weight:500;color:var(--ink);padding:15px 0;outline:none;min-width:0}
+  .field input::placeholder{color:var(--mut2);font-weight:400;font-size:15px}
+  .btn{border:none;background:var(--pri);color:#fff;font-weight:600;font-size:15px;border-radius:12px;padding:14px 24px;cursor:pointer;white-space:nowrap}
+  .btn:hover{filter:brightness(1.08)} .btn:disabled{opacity:.55;cursor:default}
+  .btn.stop{background:#fff;color:var(--bad);border:1.5px solid var(--bad)}
+  .btn2{display:inline-block;border:1.5px solid var(--pri);background:#fff;color:var(--pri);font-weight:600;font-size:13px;border-radius:10px;padding:8px 14px;text-decoration:none;white-space:nowrap;cursor:pointer}
+  .btn2:hover{background:var(--pri-soft)}
+  .chips{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .chips .lbl{font-size:13px;font-weight:600;color:var(--mut);margin-right:2px}
+  .chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:#fff;color:var(--mut);border-radius:999px;padding:6px 14px;font-size:13px;font-weight:500;cursor:pointer;user-select:none}
+  .chip.on{background:var(--pri-soft);border-color:var(--pri-line);color:var(--pri)}
+  .chip select{border:none;background:transparent;color:inherit;font-weight:500;font-size:13px;cursor:pointer;outline:none;padding:0}
+  .chip input{display:none}
+  .linkbtn{background:none;border:none;color:var(--pri);font-weight:600;font-size:13px;cursor:pointer;padding:6px 4px}
+  .adv{display:none;grid-template-columns:repeat(4,1fr);gap:14px;border-top:1px dashed var(--line);padding-top:16px}
+  .adv.open{display:grid}
+  .adv label{display:block;font-size:12px;font-weight:600;color:var(--mut);margin-bottom:5px}
+  .adv input,.adv select{width:100%;border:1px solid #C9D0DA;border-radius:10px;padding:9px 12px;background:#fff}
+  .adv .hint{font-size:11.5px;color:var(--mut);margin-top:4px}
+  .examples{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:13px;color:var(--mut)}
+  .examples button{border:1px dashed var(--pri-line);background:#fff;color:var(--pri);border-radius:999px;padding:5px 12px;cursor:pointer;font-size:12.5px}
+
+  /* Progresso */
+  .progress{display:none;flex-direction:column;gap:8px}
+  .progress.show{display:flex}
+  .progress .txt{font-size:13px;color:var(--mut)}
+  .progress .bar{height:6px;background:#E2E7EF;border-radius:99px;overflow:hidden}
+  .progress .bar i{display:block;height:100%;width:0;background:var(--pri);border-radius:99px;transition:width .25s}
+  .msg{border-radius:12px;padding:12px 16px;font-size:13px}
+  .msg.err{background:var(--badbg);color:var(--bad);border:1px solid #F3C6C2}
+  .msg.info{background:var(--pri-soft);color:var(--navy);border:1px solid var(--pri-line)}
+
+  /* Indicadores */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:0 4px 16px rgba(13,43,77,.06);padding:20px 22px;display:flex;flex-direction:column;gap:6px;min-width:0}
+  .stat .l{font-size:13px;font-weight:500;color:var(--mut)}
+  .stat .v{font-size:28px;font-weight:700;color:var(--navy);line-height:1.15;font-variant-numeric:tabular-nums}
+  .stat .d{font-size:12px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .stat.hl{background:var(--pri);border-color:var(--pri)}
+  .stat.hl .l,.stat.hl .d{color:#D6E6F8} .stat.hl .v{color:#fff}
+
+  /* Corpo */
+  .body{display:grid;grid-template-columns:400px 1fr;gap:24px;align-items:start}
+  .side{display:flex;flex-direction:column;gap:16px;position:sticky;top:16px}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:24px}
+  .panel h3{margin:0;font-size:15px;font-weight:600}
+  .panel .sub{margin:4px 0 0;font-size:12px;color:var(--mut)}
+  .hist{display:flex;align-items:flex-end;gap:10px;height:190px;margin-top:16px}
+  .hist .col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:6px;height:100%;min-width:0}
+  .hist .n{font-size:11px;font-weight:600;color:var(--mut)}
+  .hist .b{width:100%;border-radius:6px;background:var(--pri-line);min-height:4px;transition:height .3s}
+  .hist .b.med{background:var(--pri)}
+  .hist .x{font-size:10.5px;color:var(--mut);white-space:nowrap}
+  .legend{display:flex;align-items:center;gap:8px;margin-top:14px;font-size:12px;font-weight:500}
+  .legend i{width:12px;height:12px;border-radius:3px;background:var(--pri);display:block}
+  .empty-hist{height:190px;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--mut2);font-size:13px;margin-top:16px;border:1px dashed var(--line);border-radius:12px;padding:16px}
+  .note{background:var(--note);border:1px solid var(--noteline);border-radius:16px;padding:18px 20px;color:var(--noteink)}
+  .note b{display:block;font-size:13px;margin-bottom:6px}
+  .note p{margin:0;font-size:12px}
+  .side .btn{width:100%}
+  .side .btn2{width:100%;text-align:center}
+
+  .list{display:flex;flex-direction:column;gap:12px;min-width:0}
+  .lhead{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+  .lhead h3{margin:0;font-size:16px;font-weight:600}
+  .tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .tools select,.tools input{border:1px solid var(--line);background:#fff;border-radius:10px;padding:7px 10px;font-size:13px;color:var(--pri);font-weight:500}
+  .tools input{color:var(--ink);font-weight:400;width:200px}
+  .warnbar{background:var(--warnbg);border:1px solid var(--noteline);color:var(--noteink);border-radius:12px;padding:10px 14px;font-size:12.5px}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 22px;display:flex;gap:20px;align-items:center;transition:opacity .2s}
+  .card.excl{opacity:.5}
+  .card .info{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+  .card .row1{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .tag{display:inline-block;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:600}
+  .tag.ok{background:var(--okbg);color:var(--ok)} .tag.warn{background:var(--warnbg);color:var(--warn)} .tag.bad{background:var(--badbg);color:var(--bad)} .tag.mut{background:#EEF0F3;color:var(--mut)}
+  .meta{font-size:12px;font-weight:500;color:var(--mut)}
+  .card h4{margin:0;font-size:16px;font-weight:600;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;cursor:pointer}
+  .card h4.open{-webkit-line-clamp:unset}
+  .card .org{font-size:13px;color:var(--mut)}
+  .card .use{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--mut);cursor:pointer;width:fit-content}
+  .card .price{display:flex;flex-direction:column;align-items:flex-end;gap:6px;text-align:right;flex:none}
+  .card .un{font-size:11px;font-weight:500;color:var(--mut)}
+  .card .val{font-size:26px;font-weight:700;color:var(--navy);font-variant-numeric:tabular-nums;line-height:1.1}
+  .card .val.none{font-size:14px;font-weight:600;color:var(--mut2)}
+  .card .est{font-size:12px;font-weight:500;color:var(--ok)}
+  .card .est.up{color:var(--warn)}
+  mark{background:#FFE58A;border-radius:2px;padding:0 1px}
+  .more{text-align:center;padding:10px}
+  .more button{background:none;border:none;color:var(--pri);font-weight:600;font-size:14px;cursor:pointer}
+
+  .welcome{background:var(--card);border:1px dashed var(--pri-line);border-radius:16px;padding:40px;text-align:center;color:var(--mut)}
+  .welcome b{display:block;color:var(--navy);font-size:16px;margin-bottom:6px}
+  footer{color:var(--mut2);font-size:12px;text-align:center}
+  .hidden{display:none !important}
+
+  @media (max-width:1100px){ .body{grid-template-columns:1fr} .side{position:static} .stats{grid-template-columns:repeat(2,1fr)} .adv{grid-template-columns:repeat(2,1fr)} }
+  @media (max-width:640px){ .top,main{padding-left:16px;padding-right:16px} .srow{flex-direction:column} .card{flex-direction:column;align-items:stretch} .card .price{align-items:flex-start;text-align:left} .stats{grid-template-columns:1fr} .adv{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <svg width="40" height="40" viewBox="0 0 40 40" fill="none" aria-hidden="true"><rect width="40" height="40" rx="10" fill="#1E7BD8"/><path d="M12 26l5-6 4 4 7-9" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="28" cy="15" r="2.2" fill="#7CE0A8"/></svg>
+    <div><h1>Consulta de Preços Públicos</h1><p>Atas de registro de preços vigentes · dados do PNCP em tempo real</p></div>
+  </div>
+  <div class="status-row">
+    <span class="live" id="live"><i></i><span id="liveTxt">Verificando o PNCP…</span></span>
+    <span>SEINFRA · Prefeitura do Recife</span>
+  </div>
+</header>
+
+<main>
+  <form class="search" id="form" autocomplete="off">
+    <div>
+      <h2>O que você precisa cotar?</h2>
+      <p class="lead">Pesquise pelo item e compare os valores unitários registrados em atas vigentes de todo o país.</p>
+    </div>
+    <div class="srow">
+      <label class="field">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="#0B5CAD" stroke-width="2.2"/><path d="m20 20-3.5-3.5" stroke="#0B5CAD" stroke-width="2.2" stroke-linecap="round"/></svg>
+        <input id="q" placeholder="ex.: pneu 195/65 R15 · cimento asfáltico CAP 50/70 · tinta acrílica" required>
+      </label>
+      <button class="btn" id="go" type="submit">Pesquisar preços</button>
+      <button class="btn stop hidden" id="stop" type="button">Parar</button>
+    </div>
+    <div class="chips">
+      <span class="lbl">Filtros:</span>
+      <span class="chip" id="chipUf">UF: <select id="uf"><option value="">Todas</option></select></span>
+      <span class="chip" id="chipEsf">Esfera: <select id="esf"><option value="">Todas</option><option value="F">Federal</option><option value="E">Estadual</option><option value="M">Municipal</option><option value="D">Distrital</option></select></span>
+      <label class="chip on"><input type="checkbox" id="vig" checked>Vigente hoje</label>
+      <label class="chip"><input type="checkbox" id="ades">Permite adesão</label>
+      <label class="chip on"><input type="checkbox" id="prim" checked>Somente 1º colocado</label>
+      <button class="linkbtn" type="button" id="advBtn">+ mais filtros</button>
+    </div>
+    <div class="adv" id="adv">
+      <div><label for="obj">Objeto da ata (busca no PNCP)</label><input id="obj" placeholder="automático a partir do item"><div class="hint">Ex.: “pneus”. Use quando o item for muito específico.</div></div>
+      <div><label for="cnpj">Somente atas do órgão (CNPJ)</label><input id="cnpj" placeholder="00.000.000/0000-00"><div class="hint"><a href="#" id="recife">usar Município do Recife</a></div></div>
+      <div><label for="lim">Analisar até</label><select id="lim"><option value="25">25 atas</option><option value="50" selected>50 atas</option><option value="100">100 atas</option><option value="200">200 atas</option></select><div class="hint">Mais atas = mais amostras, porém mais lento.</div></div>
+      <div><label for="semval">Itens sem valor registrado</label><select id="semval"><option value="0">Ocultar</option><option value="1">Mostrar (fora da mediana)</option></select></div>
+    </div>
+  </form>
+
+  <section class="progress" id="progress"><div class="txt" id="progTxt"></div><div class="bar"><i id="progBar"></i></div></section>
+  <div id="msg"></div>
+
+  <section class="stats" id="stats">
+    <div class="stat hl"><span class="l">Mediana</span><span class="v" id="sMed">—</span><span class="d" id="sMedD">referência sugerida para o processo</span></div>
+    <div class="stat"><span class="l">Mínimo</span><span class="v" id="sMin">—</span><span class="d" id="sMinD">&nbsp;</span></div>
+    <div class="stat"><span class="l">Máximo</span><span class="v" id="sMax">—</span><span class="d" id="sMaxD">&nbsp;</span></div>
+    <div class="stat"><span class="l">Amostras válidas</span><span class="v" id="sN">—</span><span class="d" id="sND">&nbsp;</span></div>
+  </section>
+
+  <section class="body">
+    <aside class="side">
+      <div class="panel">
+        <h3>Distribuição dos valores unitários</h3>
+        <p class="sub">Quantidade de amostras por faixa de preço (R$)</p>
+        <div id="hist" class="empty-hist">O gráfico aparece quando houver ao menos 2 valores.</div>
+        <div class="legend hidden" id="legend"><i></i><span id="legendTxt"></span></div>
+      </div>
+      <div class="note">
+        <b>Base legal</b>
+        <p>Contratações similares em execução ou concluídas no último ano, inclusive por registro de preços (Lei 14.133/2021, art. 23, §1º, II). Revise unidades de medida e valores atípicos antes de usar a mediana.</p>
+      </div>
+      <button class="btn" id="csv" type="button" disabled>Exportar relatório de pesquisa</button>
+      <button class="btn2" id="copy" type="button" disabled>Copiar resumo para o processo</button>
+    </aside>
+
+    <section class="list">
+      <div class="lhead">
+        <h3 id="lTitle">Nenhuma pesquisa realizada</h3>
+        <div class="tools">
+          <input id="refine" placeholder="Refinar nos resultados…">
+          <select id="unit" title="Unidade de medida"><option value="">Todas as unidades</option></select>
+          <select id="sort"><option value="asc">Ordenar: menor valor</option><option value="desc">Ordenar: maior valor</option><option value="fim">Ordenar: vence primeiro</option><option value="dist">Ordenar: mais próximo da mediana</option></select>
+        </div>
+      </div>
+      <div id="warn"></div>
+      <div id="cards">
+        <div class="welcome">
+          <b>Comece pela busca acima</b>
+          A ferramenta localiza as atas vigentes no PNCP, abre os itens e traz o valor unitário registrado e o fornecedor de cada uma.
+          <div class="examples" style="justify-content:center;margin-top:14px">
+            Exemplos:
+            <button type="button" data-ex="pneu 195/65 R15">pneu 195/65 R15</button>
+            <button type="button" data-ex="cimento asfáltico CAP 50/70">cimento asfáltico CAP 50/70</button>
+            <button type="button" data-ex="tinta acrílica 18 litros">tinta acrílica 18 litros</button>
+            <button type="button" data-ex="locação de retroescavadeira">locação de retroescavadeira</button>
+          </div>
+        </div>
+      </div>
+      <div class="more hidden" id="more"><button type="button" id="moreBtn"></button></div>
+    </section>
+  </section>
+
+  <footer>As consultas vão direto do seu navegador para pncp.gov.br. Nenhum dado passa por outro servidor. Clique na descrição do item para ver o texto completo.</footer>
+</main>
+
+<script>
+(() => {
+'use strict';
+const BASE = 'https://pncp.gov.br';
+const $ = id => document.getElementById(id);
+const hoje = new Date(); hoje.setHours(0,0,0,0);
+const isoLocal = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+'AC AL AM AP BA CE DF ES GO MA MG MS MT PA PB PE PI PR RJ RN RO RR RS SC SE SP TO'.split(' ').forEach(u => $('uf').insertAdjacentHTML('beforeend', `<option>${u}</option>`));
+
+// ---------- utilitários ----------
+const norm = s => (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+const esc = s => (s ?? '').toString().replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmtD = s => s ? s.slice(0,10).split('-').reverse().join('/') : '—';
+const parseD = s => { if(!s) return null; const d = new Date(s.slice(0,10)+'T00:00:00'); return isNaN(d) ? null : d; };
+const cnpjFmt = c => (c||'').replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
+const BRL = new Intl.NumberFormat('pt-BR', {style:'currency', currency:'BRL', minimumFractionDigits:2, maximumFractionDigits:4});
+const BRL2 = new Intl.NumberFormat('pt-BR', {style:'currency', currency:'BRL'});
+const money = v => v == null || isNaN(v) ? '—' : BRL.format(v);
+const money2 = v => v == null || isNaN(v) ? '—' : BRL2.format(v);
+const compact = v => v >= 1e6 ? (v/1e6).toLocaleString('pt-BR',{maximumFractionDigits:1})+' mi' : v >= 1e4 ? (v/1e3).toLocaleString('pt-BR',{maximumFractionDigits:0})+' mil' : v >= 100 ? Math.round(v).toLocaleString('pt-BR') : v.toLocaleString('pt-BR',{maximumFractionDigits:2});
+const pct = v => (v > 0 ? '+' : '−') + Math.abs(v).toLocaleString('pt-BR',{maximumFractionDigits:1}) + '%';
+const STOP = new Set('de da do das dos e em para com a o as os por na no nas nos ou um uma ao aos que se tipo'.split(' '));
+function stem(t){
+  if(t.length <= 3 || /\d/.test(t)) return t;
+  if(t.endsWith('oes') || t.endsWith('aes')) return t.slice(0,-3) + 'ao';
+  if(t.endsWith('ais')) return t.slice(0,-2) + 'l';
+  if(t.endsWith('eis') && t.length > 5) return t.slice(0,-2) + 'l';
+  if(/[rzs]es$/.test(t)) return t.slice(0,-2);
+  if(t.endsWith('s')) return t.slice(0,-1);
+  return t;
+}
+function parseTerms(q, {stemming=true, stop=true} = {}){
+  const inc=[], exc=[];
+  (q.match(/"[^"]+"|\S+/g) || []).forEach(t => {
+    const neg = t.startsWith('-'), quoted = /"/.test(t);
+    t = norm(t.replace(/^-/,'').replace(/"/g,'')).trim(); if(!t) return;
+    if(stop && !quoted && STOP.has(t)) return;
+    if(stemming && !quoted) t = stem(t);
+    (neg ? exc : inc).push(t);
+  });
+  return {inc, exc};
+}
+const matchTerms = (txt, {inc, exc}) => { const n = norm(txt); return inc.every(t => n.includes(t)) && !exc.some(t => n.includes(t)); };
+// palavras "de objeto" do item (sem medidas/números) para buscar as atas: "pneu 195/65 R15" -> "pneu"
+function objetoFromItem(q){
+  const w = (q.match(/\S+/g) || []).filter(t => /^[\p{L}-]{3,}$/u.test(t) && !STOP.has(norm(t)));
+  return w.slice(0, 3).join(' ');
+}
+function highlight(text, terms){
+  const src = text || ''; if(!terms.length) return esc(src);
+  const n = norm(src); if(n.length !== src.length) return esc(src);
+  const marks = [];
+  terms.forEach(t => { let i = 0; while((i = n.indexOf(t, i)) > -1){ marks.push([i, i+t.length]); i += t.length; } });
+  if(!marks.length) return esc(src);
+  marks.sort((a,b)=>a[0]-b[0]); const m2=[];
+  marks.forEach(m => { const l = m2[m2.length-1]; if(l && m[0] <= l[1]) l[1] = Math.max(l[1], m[1]); else m2.push([...m]); });
+  let out='', p=0; m2.forEach(([a,b]) => { out += esc(src.slice(p,a)) + '<mark>' + esc(src.slice(a,b)) + '</mark>'; p=b; });
+  return out + esc(src.slice(p));
+}
+const diasRest = fim => { const d = parseD(fim); return d ? Math.round((d - hoje)/864e5) : null; };
+function vigTag(a){
+  if(a.cancelado) return ['bad','Ata cancelada'];
+  const d = diasRest(a.fim), ini = parseD(a.ini);
+  if(d === null) return ['mut','Vigência não informada'];
+  if(ini && ini > hoje) return ['mut',`Inicia em ${fmtD(a.ini)}`];
+  if(d < 0) return ['bad',`Encerrada em ${fmtD(a.fim)}`];
+  if(d > 3650) return ['mut','Data de vigência atípica'];
+  if(d <= 90) return ['warn', d === 0 ? 'Vence hoje' : `Vence em ${d} dia${d===1?'':'s'}`];
+  return ['ok',`Vigente · vence em ${d} dias`];
+}
+const sleep = ms => new Promise(s => setTimeout(s, ms));
+async function getJSON(url, signal){
+  for(let t=0; t<3; t++){
+    try{
+      const r = await fetch(url, {signal, headers:{Accept:'application/json'}});
+      if(r.status === 204 || r.status === 404) return null;
+      const txt = await r.text();
+      let j; try{ j = txt ? JSON.parse(txt) : null; }catch{ j = null; }
+      if(!r.ok){ const msg = j?.message || j?.detail || `HTTP ${r.status}`; if((r.status >= 500 || r.status === 429) && t < 2){ await sleep(1500*(t+1)); continue; } throw new Error(msg); }
+      return j;
+    }catch(e){
+      if(e.name === 'AbortError') throw e;
+      if(t === 2){ if(e instanceof TypeError) e.network = true; throw e; }
+      await sleep(1200*(t+1));
+    }
+  }
+}
+async function pool(list, n, fn, signal){
+  let i = 0;
+  await Promise.all(Array.from({length: Math.min(n, list.length)}, async () => {
+    while(i < list.length){ if(signal?.aborted) return; const k = i++; await fn(list[k], k); }
+  }));
+}
+const median = a => { if(!a.length) return null; const s = [...a].sort((x,y)=>x-y), m = s.length>>1; return s.length%2 ? s[m] : (s[m-1]+s[m])/2; };
+const unitKey = u => norm(u).replace(/[^a-z0-9]/g,'') || '(sem unidade)';
+
+// ---------- PNCP ----------
+function parseCtrl(ctrl){
+  const m = /^(\d{14})-\d-(\d+)\/(\d{4})-(\d+)$/.exec(ctrl || '');
+  return m ? {cnpj:m[1], seq:+m[2], ano:+m[3], seqAta:+m[4]} : null;
+}
+const linkAta = p => p ? `${BASE}/app/atas/${p.cnpj}/${p.ano}/${p.seq}/${p.seqAta}` : '';
+const linkCompra = p => p ? `${BASE}/app/editais/${p.cnpj}/${p.ano}/${p.seq}` : '';
+const ataFromSearch = i => { const p = parseCtrl(i.numero_controle_pncp); return {
+  num: i.title?.replace(/^Ata\s*(nº\s*)?/i,'') || '—', ctrl: i.numero_controle_pncp || '', p,
+  org: i.orgao_subrogado_nome || i.orgao_nome || '', uni: i.unidade_nome || '', cnpj: i.orgao_cnpj || '',
+  uf: i.uf || '', mun: i.municipio_nome || '', mod: i.modalidade_licitacao_nome || '', obj: (i.description||'').trim(),
+  ini: i.data_inicio_vigencia || '', fim: i.data_fim_vigencia || '', cancelado: !!i.cancelado, ades: i.permite_adesao ?? null,
+  url: i.item_url ? BASE + '/app' + i.item_url : linkAta(p) }; };
+const ataFromConsulta = a => { const p = parseCtrl(a.numeroControlePNCPAta); return {
+  num: `${a.numeroAtaRegistroPreco || '—'}${a.anoAta?'/'+a.anoAta:''}`, ctrl: a.numeroControlePNCPAta || '', p,
+  org: a.nomeOrgaoSubrogado || a.nomeOrgao || '', uni: a.nomeUnidadeOrgaoSubrogado || a.nomeUnidadeOrgao || '',
+  cnpj: a.cnpjOrgaoSubrogado || a.cnpjOrgao || '', uf: '', mun: '', mod: '', obj: (a.objetoContratacao||'').trim(),
+  ini: a.vigenciaInicio || '', fim: a.vigenciaFim || '', cancelado: !!a.cancelado, ades: a.possibilidadeAdesao ?? null, url: linkAta(p) }; };
+
+const compraCache = new Map();
+function loadCompra(p, signal){
+  const k = `${p.cnpj}/${p.ano}/${p.seq}`;
+  if(!compraCache.has(k)){
+    const base = `${BASE}/api/pncp/v1/orgaos/${p.cnpj}/compras/${p.ano}/${p.seq}`;
+    const prom = (async () => {
+      const itens = [];
+      for(let pg=1; pg<=20; pg++){
+        const arr = await getJSON(`${base}/itens?pagina=${pg}&tamanhoPagina=500`, signal);
+        if(!Array.isArray(arr) || !arr.length) break;
+        itens.push(...arr); if(arr.length < 500) break;
+      }
+      let nAtas = null;
+      try{ const a = await getJSON(`${base}/atas`, signal); nAtas = (a?.data || a || []).length || null; }catch(e){ if(e.name==='AbortError') throw e; }
+      return {base, itens, nAtas, res: new Map()};
+    })();
+    prom.catch(() => compraCache.delete(k));
+    compraCache.set(k, prom);
+  }
+  return compraCache.get(k);
+}
+async function loadRes(c, it, signal){
+  if(!c.res.has(it.numeroItem)){
+    const arr = it.temResultado === false ? [] : await getJSON(`${c.base}/itens/${it.numeroItem}/resultados`, signal);
+    c.res.set(it.numeroItem, Array.isArray(arr) ? arr : []);
+  }
+  return c.res.get(it.numeroItem);
+}
+
+// ---------- estado ----------
+let atas = [], samples = [], excl = new Set(), userTouched = new Set(), shown = 20, ctrl = null, itemTerms = {inc:[],exc:[]}, lastQuery = '', stats = null;
+let atasSemItem = 0, atasErro = 0;
+
+// ---------- UI: filtros ----------
+document.querySelectorAll('label.chip input').forEach(cb => cb.onchange = () => { cb.parentElement.classList.toggle('on', cb.checked); if(cb.id === 'prim') render(); });
+['uf','esf'].forEach(id => $(id).onchange = () => $(id === 'uf' ? 'chipUf' : 'chipEsf').classList.toggle('on', !!$(id).value));
+$('advBtn').onclick = () => { const o = $('adv').classList.toggle('open'); $('advBtn').textContent = o ? '− menos filtros' : '+ mais filtros'; };
+$('recife').onclick = e => { e.preventDefault(); $('cnpj').value = '10.565.000/0001-92'; };
+document.querySelectorAll('[data-ex]').forEach(b => b.onclick = () => { $('q').value = b.dataset.ex; $('form').requestSubmit(); });
+$('stop').onclick = () => ctrl?.abort();
+['sort','unit'].forEach(id => $(id).onchange = () => { shown = 20; render(); });
+let rt; $('refine').oninput = () => { clearTimeout(rt); rt = setTimeout(() => { shown = 20; render(); }, 200); };
+$('moreBtn').onclick = () => { shown += 20; render(); };
+
+function progress(txt, p){
+  $('progress').classList.toggle('show', txt != null);
+  if(txt != null){ $('progTxt').innerHTML = txt; $('progBar').style.width = Math.min(100, p || 0) + '%'; }
+}
+function message(html, kind='info'){ $('msg').innerHTML = html ? `<div class="msg ${kind}">${html}</div>` : ''; }
+function busy(on){ $('go').classList.toggle('hidden', on); $('stop').classList.toggle('hidden', !on); }
+const netMsg = e => e.network
+  ? 'Não foi possível acessar o PNCP a partir deste navegador (rede indisponível ou bloqueio). Verifique a conexão e tente de novo; se persistir, abra o arquivo no Chrome ou no Edge.'
+  : `O PNCP retornou um erro: ${esc(e.message)}`;
+
+// conexão
+(async () => {
+  try{ await getJSON(`${BASE}/api/search/?q=ata&tipos_documento=ata&pagina=1&tam_pagina=1&status=vigente`); $('live').className='live on'; $('liveTxt').textContent='Conectado ao PNCP'; }
+  catch{ $('live').className='live off'; $('liveTxt').textContent='PNCP indisponível'; }
+})();
+
+// ---------- pesquisa ----------
+$('form').onsubmit = async ev => {
+  ev.preventDefault();
+  const q = $('q').value.trim(); if(!q) return;
+  ctrl?.abort(); ctrl = new AbortController(); const signal = ctrl.signal;
+  atas = []; samples = []; excl = new Set(); userTouched = new Set(); shown = 20; atasSemItem = 0; atasErro = 0;
+  lastQuery = q; itemTerms = parseTerms(q);
+  $('refine').value = ''; $('unit').value = ''; message(''); busy(true); render();
+  const lim = +$('lim').value, soVig = $('vig').checked, soAdes = $('ades').checked;
+  const cnpj = $('cnpj').value.replace(/\D/g,'');
+  const objQ = $('obj').value.trim() || objetoFromItem(q) || q;
+  try{
+    // 1) localizar atas
+    const keep = a => {
+      if(soAdes && a.ades !== true) return false;
+      if(soVig){ const ini = parseD(a.ini), fim = parseD(a.fim); if(a.cancelado || (ini && ini > hoje) || (fim && fim < hoje)) return false; }
+      return true;
+    };
+    if(cnpj){
+      if(cnpj.length !== 14) throw new Error('CNPJ deve ter 14 dígitos.');
+      const d = isoLocal(hoje).replaceAll('-','');
+      const objT = $('obj').value.trim() ? parseTerms($('obj').value) : null;
+      let totalPag = 1;
+      for(let pg=1; pg<=totalPag && atas.length < lim; pg++){
+        progress(`Localizando as atas do órgão ${cnpjFmt(cnpj)}… página ${pg}`, 5);
+        const j = await getJSON(`${BASE}/api/consulta/v1/atas?dataInicial=${d}&dataFinal=${d}&cnpj=${cnpj}&pagina=${pg}&tamanhoPagina=500`, signal);
+        if(!j) break; totalPag = j.totalPaginas || 1;
+        (j.data || []).map(ataFromConsulta).filter(keep).filter(a => !objT || matchTerms(a.obj, objT)).forEach(a => atas.length < lim && atas.push(a));
+      }
+    } else {
+      const p = new URLSearchParams({q: objQ, tipos_documento:'ata', ordenacao:'-data', tam_pagina:'500', status: soVig ? 'vigente' : 'todos'});
+      if($('uf').value) p.set('ufs', $('uf').value);
+      if($('esf').value) p.set('esferas', $('esf').value);
+      let lidos = 0, total = 0;
+      for(let pg=1; pg<=40 && atas.length < lim; pg++){
+        p.set('pagina', pg);
+        progress(`Localizando atas no PNCP com “${esc(objQ)}”…`, 5);
+        const j = await getJSON(`${BASE}/api/search/?${p}`, signal);
+        const its = j?.items || []; total = j?.total ?? 0; lidos += its.length;
+        its.map(ataFromSearch).filter(keep).forEach(a => atas.length < lim && atas.push(a));
+        if(!its.length || lidos >= total) break;
+      }
+    }
+    if(!atas.length){
+      progress(null); busy(false); render();
+      message(`Nenhuma ata ${soVig?'vigente ':''}encontrada para “${esc(objQ)}”. Tente um termo mais geral em <b>+ mais filtros → Objeto da ata</b> (ex.: só “${esc(objQ.split(' ')[0])}”) ou remova filtros.`);
+      return;
+    }
+    // 2) abrir itens e resultados
+    let feitos = 0;
+    progress(`Abrindo os itens de ${atas.length} atas para obter os valores unitários… 0 de ${atas.length}`, 8);
+    await pool(atas, 3, async a => {
+      try{ await detalhar(a, signal); }
+      catch(e){ if(e.name === 'AbortError') throw e; atasErro++; if(e.network && !samples.length && atasErro >= 3) throw e; }
+      feitos++;
+      progress(`Abrindo os itens das atas para obter os valores unitários… ${feitos} de ${atas.length} · ${samples.filter(s=>s.v!=null).length} preços encontrados`, 8 + feitos/atas.length*92);
+      if(feitos % 2 === 0 || feitos === atas.length) render();
+    }, signal);
+    progress(null);
+    const nv = samples.filter(s => s.v != null).length;
+    if(!nv) message(`As ${atas.length} atas analisadas não têm item com valor registrado que corresponda a “${esc(q)}”. ${atasSemItem ? `Em ${atasSemItem} delas nenhum item contém todas as palavras pesquisadas: tente uma descrição mais curta (ex.: “${esc(objQ.split(' ')[0])}”).` : ''}`);
+    else if(atasErro) message(`${atasErro} ata(s) não puderam ser consultadas agora e ficaram de fora.`, 'info');
+  }catch(e){
+    progress(null);
+    if(e.name === 'AbortError') message(`Pesquisa interrompida. ${samples.filter(s=>s.v!=null).length} preços carregados até aqui.`);
+    else message(e.message === 'CNPJ deve ter 14 dígitos.' ? e.message : netMsg(e), 'err');
+  }finally{ busy(false); render(); }
+};
+
+async function detalhar(a, signal){
+  if(!a.p) return;
+  const c = await loadCompra(a.p, signal);
+  const alvo = itemTerms.inc.length || itemTerms.exc.length ? c.itens.filter(it => matchTerms(it.descricao, itemTerms)) : c.itens;
+  if(!alvo.length){ atasSemItem++; return; }
+  await pool(alvo, 4, async it => {
+    const res = (await loadRes(c, it, signal)).filter(x => !x.dataCancelamento);
+    const base = { ata: a, n: it.numeroItem, desc: (it.descricao||'').trim(), un: (it.unidadeMedida||'').trim(), qtd: it.quantidade,
+      est: it.orcamentoSigiloso ? null : it.valorUnitarioEstimado, nAtas: c.nAtas, cat: it.catalogoCodigoItem || '', tipo: it.materialOuServicoNome || '' };
+    if(!res.length) samples.push({...base, key:`${a.ctrl}#${it.numeroItem}#-`, v:null, forn:'', fornNi:'', ordem:null, sit: it.situacaoCompraItemNome || 'sem resultado'});
+    else res.forEach(x => samples.push({...base, key:`${a.ctrl}#${it.numeroItem}#${x.niFornecedor}#${x.ordemClassificacaoSrp ?? ''}`,
+      v: x.valorUnitarioHomologado, qh: x.quantidadeHomologada, forn: x.nomeRazaoSocialFornecedor || '', fornNi: x.niFornecedor || '', ordem: x.ordemClassificacaoSrp ?? null}));
+  }, signal);
+}
+
+// ---------- cálculo ----------
+function visible(){
+  const prim = $('prim').checked, semval = $('semval').value === '1', unit = $('unit').value;
+  const rf = parseTerms($('refine').value);
+  return samples.filter(s => {
+    if(prim && s.ordem > 1) return false;
+    if(!semval && s.v == null) return false;
+    if(unit && unitKey(s.un) !== unit) return false;
+    if((rf.inc.length || rf.exc.length) && !matchTerms([s.desc, s.forn, s.ata.org, s.ata.uf, s.ata.mun, s.ata.num, s.un].join(' '), rf)) return false;
+    return true;
+  });
+}
+const used = list => list.filter(s => s.v != null && !excl.has(s.key));
+function computeStats(list){
+  const u = used(list), vals = u.map(s => s.v);
+  if(!vals.length) return {n:0, total:list.filter(s=>s.v!=null).length};
+  const med = median(vals);
+  const min = u.reduce((a,b) => b.v < a.v ? b : a), max = u.reduce((a,b) => b.v > a.v ? b : a);
+  return {n: vals.length, total: list.filter(s=>s.v!=null).length, med, min, max, mean: vals.reduce((a,b)=>a+b,0)/vals.length, vals};
+}
+
+// ---------- render ----------
+function render(){
+  const list = visible();
+  stats = computeStats(list);
+  const st = stats;
+  // indicadores
+  $('sMed').textContent = money(st.med); $('sMedD').textContent = st.n ? `média ${money2(st.mean)} · referência sugerida` : 'referência sugerida para o processo';
+  $('sMin').textContent = money(st.min?.v); $('sMinD').textContent = st.min ? `${st.min.ata.org}${st.min.ata.uf?' · '+st.min.ata.uf:''}` : ' ';
+  $('sMax').textContent = money(st.max?.v); $('sMaxD').textContent = st.max ? `${st.max.ata.org}${st.max.ata.uf?' · '+st.max.ata.uf:''}` : ' ';
+  $('sN').textContent = st.total ? `${st.n} de ${st.total}` : '—';
+  const nEx = st.total - st.n, nRes = samples.filter(s => s.ordem > 1).length;
+  $('sND').textContent = st.total ? [nEx ? `${nEx} excluída${nEx>1?'s':''} por você` : 'todas em uso', $('prim').checked && nRes ? `${nRes} de cadastro reserva ocultas` : ''].filter(Boolean).join(' · ') : ' ';
+  renderHist(st);
+  // unidades
+  const counts = {}; samples.filter(s => s.v != null).forEach(s => { const k = unitKey(s.un); counts[k] = counts[k] || {n:0, label:s.un || '(sem unidade)'}; counts[k].n++; });
+  const cur = $('unit').value;
+  $('unit').innerHTML = '<option value="">Todas as unidades</option>' + Object.entries(counts).sort((a,b)=>b[1].n-a[1].n).map(([k,o]) => `<option value="${esc(k)}">${esc(o.label)} (${o.n})</option>`).join('');
+  $('unit').value = counts[cur] ? cur : '';
+  const unitsUsed = new Set(used(list).map(s => unitKey(s.un)));
+  $('warn').innerHTML = unitsUsed.size > 1 ? `<div class="warnbar">As amostras em uso têm <b>${unitsUsed.size} unidades de medida</b> diferentes. Escolha uma unidade no seletor ao lado ou desmarque as que não forem comparáveis.</div>` : '';
+  // lista
+  const nAtasCom = new Set(list.filter(s=>s.v!=null).map(s => s.ata.ctrl)).size;
+  $('lTitle').textContent = !samples.length && !atas.length ? 'Nenhuma pesquisa realizada'
+    : `${list.filter(s=>s.v!=null).length.toLocaleString('pt-BR')} preço${list.filter(s=>s.v!=null).length===1?'':'s'} encontrado${list.filter(s=>s.v!=null).length===1?'':'s'} em ${nAtasCom} ata${nAtasCom===1?'':'s'}${$('vig').checked?' vigente'+(nAtasCom===1?'':'s'):''}`;
+  const sort = $('sort').value, med = st.med;
+  const sorted = [...list].sort((a,b) => {
+    if(a.v == null && b.v != null) return 1; if(b.v == null && a.v != null) return -1;
+    if(sort === 'asc') return (a.v ?? 0) - (b.v ?? 0);
+    if(sort === 'desc') return (b.v ?? 0) - (a.v ?? 0);
+    if(sort === 'fim') return (diasRest(a.ata.fim) ?? 1e9) - (diasRest(b.ata.fim) ?? 1e9);
+    return Math.abs((a.v ?? 0) - (med ?? 0)) - Math.abs((b.v ?? 0) - (med ?? 0));
+  });
+  if(!samples.length && !atas.length) return; // mantém a tela de boas-vindas
+  const termsHl = itemTerms.inc;
+  $('cards').innerHTML = sorted.slice(0, shown).map(s => {
+    const a = s.ata, [tc, tt] = vigTag(a), isEx = excl.has(s.key);
+    const dif = s.v != null && s.est ? (s.v - s.est) / s.est * 100 : null;
+    let flag = '';
+    if(s.v != null && med && !isEx){ const r = s.v / med; if(r > 2) flag = '<span class="tag warn">muito acima da mediana</span>'; else if(r < 0.5) flag = '<span class="tag warn">muito abaixo da mediana</span>'; }
+    const extra = [s.ordem > 1 ? `<span class="tag mut">${s.ordem}º colocado · cadastro reserva</span>` : '', s.nAtas > 1 ? `<span class="tag mut">compra com ${s.nAtas} atas</span>` : '', flag].join('');
+    return `<article class="card${isEx?' excl':''}">
+      <div class="info">
+        <div class="row1"><span class="tag ${tc}">${tt}</span><span class="meta">Ata ${esc(a.num)}${a.mod?' · '+esc(a.mod):''} · item ${s.n}</span>${extra}</div>
+        <h4 title="Clique para ver a descrição completa">${highlight(s.desc, termsHl)}</h4>
+        <div class="org">${esc(a.org)}${a.uf?' · '+esc(a.uf):''}${a.mun && norm(a.mun) !== norm(a.org).replace(/^municipio d[eoa]s? /,'') ? ' ('+esc(a.mun)+')' : ''}${s.forn ? '  ·  Fornecedor: '+esc(s.forn) : ''}</div>
+        ${s.v != null ? `<label class="use"><input type="checkbox" data-k="${esc(s.key)}" ${isEx?'':'checked'}> usar na mediana</label>` : ''}
+      </div>
+      <div class="price">
+        <span class="un">valor unitário · ${esc(s.un || 'unidade não informada')}${s.qtd != null ? ' · qtd. '+Number(s.qtd).toLocaleString('pt-BR') : ''}</span>
+        ${s.v != null ? `<span class="val">${money(s.v)}</span>` : `<span class="val none">${esc(s.sit || 'sem valor registrado')}</span>`}
+        ${s.est ? `<span class="est${dif > 0 ? ' up' : ''}">estimado ${money(s.est)}${dif != null ? '  ·  '+pct(dif) : ''}</span>` : ''}
+        <a class="btn2" href="${esc(a.url)}" target="_blank" rel="noopener">Ver ata no PNCP ↗</a>
+      </div>
+    </article>`;
+  }).join('') || `<div class="welcome"><b>${ctrl && !ctrl.signal.aborted && $('stop').classList.contains('hidden') === false ? 'Buscando preços…' : 'Nenhum preço para exibir'}</b>${samples.length ? 'Ajuste os filtros acima da lista (unidade, refinar) ou o filtro “Somente 1º colocado”.' : ''}</div>`;
+  const rest = sorted.length - shown;
+  $('more').classList.toggle('hidden', rest <= 0);
+  $('moreBtn').textContent = `Carregar mais ${Math.min(20, rest)} de ${rest} preços`;
+  document.querySelectorAll('#cards h4').forEach(h => h.onclick = () => h.classList.toggle('open'));
+  document.querySelectorAll('#cards input[data-k]').forEach(cb => cb.onchange = () => { cb.checked ? excl.delete(cb.dataset.k) : excl.add(cb.dataset.k); render(); });
+  $('csv').disabled = $('copy').disabled = !st.total;
+}
+function renderHist(st){
+  const h = $('hist');
+  if(!st.vals || st.vals.length < 2){ h.className = 'empty-hist'; h.innerHTML = 'O gráfico aparece quando houver ao menos 2 valores.'; $('legend').classList.add('hidden'); return; }
+  const lo = Math.min(...st.vals), hi = Math.max(...st.vals);
+  const nb = Math.min(7, Math.max(3, Math.ceil(Math.sqrt(st.vals.length))));
+  const w = (hi - lo) / nb || 1;
+  const bins = Array.from({length: nb}, (_, i) => ({a: lo + i*w, b: lo + (i+1)*w, n: 0}));
+  st.vals.forEach(v => { const i = Math.min(nb-1, Math.floor((v - lo) / w)); bins[i].n++; });
+  const mi = Math.min(nb-1, Math.floor((st.med - lo) / w)), top = Math.max(...bins.map(b => b.n));
+  h.className = 'hist';
+  h.innerHTML = bins.map((b, i) => `<div class="col" title="${money2(b.a)} a ${money2(b.b)}: ${b.n} amostra${b.n===1?'':'s'}"><span class="n">${b.n}</span><div class="b${i===mi?' med':''}" style="height:${Math.max(3, b.n/top*140)}px"></div><span class="x">${compact(b.a)}</span></div>`).join('');
+  $('legend').classList.remove('hidden');
+  $('legendTxt').textContent = `Faixa da mediana (${money2(bins[mi].a)} – ${money2(bins[mi].b)})`;
+}
+
+// ---------- exportação ----------
+function csvRows(){
+  const n = v => v == null ? '' : String(v).replace('.', ',');
+  const head = ['Usado na mediana','Descrição do item','Unidade','Quantidade','Valor unitário registrado','Valor unitário estimado','Diferença (%)','Fornecedor','CNPJ/CPF fornecedor','Classificação SRP','Órgão','Unidade do órgão','UF','Município','Ata','Item nº','Modalidade','Início vigência','Fim vigência','Nº controle ata','Atas na compra','Cód. catálogo','Link ata','Link compra'];
+  const body = visible().map(s => { const a = s.ata, dif = s.v != null && s.est ? ((s.v - s.est)/s.est*100).toFixed(1).replace('.', ',') : '';
+    return [s.v == null ? '' : excl.has(s.key) ? 'Não' : 'Sim', s.desc.replace(/\s+/g,' '), s.un, n(s.qtd), n(s.v), n(s.est), dif, s.forn, cnpjFmt(s.fornNi) || s.fornNi, s.ordem ?? '', a.org, a.uni, a.uf, a.mun, a.num, s.n, a.mod, fmtD(a.ini), fmtD(a.fim), a.ctrl, s.nAtas ?? '', s.cat, a.url, linkCompra(a.p)]; });
+  return [head, ...body];
+}
+function resumo(){
+  const st = stats; if(!st?.n) return '';
+  return [`Pesquisa de preços – PNCP (atas de registro de preços${$('vig').checked?' vigentes':''})`,
+    `Item pesquisado: ${lastQuery}`, `Data da consulta: ${hoje.toLocaleDateString('pt-BR')}`,
+    `Amostras utilizadas: ${st.n} de ${st.total}`, `Mediana: ${money(st.med)}`, `Média: ${money2(st.mean)}`,
+    `Mínimo: ${money(st.min.v)} (${st.min.ata.org}${st.min.ata.uf?' – '+st.min.ata.uf:''}, Ata ${st.min.ata.num})`,
+    `Máximo: ${money(st.max.v)} (${st.max.ata.org}${st.max.ata.uf?' – '+st.max.ata.uf:''}, Ata ${st.max.ata.num})`,
+    `Fundamento: Lei 14.133/2021, art. 23, §1º, II.`].join('\n');
+}
+$('csv').onclick = () => {
+  const csv = csvRows().map(l => l.map(v => `"${String(v).replace(/"/g,'""')}"`).join(';')).join('\r\n');
+  const top = resumo().split('\n').map(l => `"${l.replace(/"/g,'""')}"`).join('\r\n');
+  const blob = new Blob(['\ufeff' + top + '\r\n\r\n' + csv], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = `pesquisa-precos-${norm(lastQuery).replace(/[^a-z0-9]+/g,'-').slice(0,40)}-${isoLocal(new Date())}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+};
+$('copy').onclick = async () => {
+  try{ await navigator.clipboard.writeText(resumo()); $('copy').textContent = 'Resumo copiado ✓'; }
+  catch{ $('copy').textContent = 'Não foi possível copiar'; }
+  setTimeout(() => $('copy').textContent = 'Copiar resumo para o processo', 2000);
+};
+})();
+</script>
+</body>
+</html>
