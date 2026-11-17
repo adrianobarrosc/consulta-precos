@@ -10,6 +10,7 @@ Ferramenta web para pesquisa de preços em **atas de registro de preços vigente
 - Busca o item (ex.: `pneu 195/65 R15`) nas atas vigentes de todo o país, com filtros de UF, esfera, adesão e órgão (CNPJ).
 - Abre os itens de cada ata e traz o **valor unitário registrado**, o valor estimado, o fornecedor e a vigência.
 - Calcula **mediana, média, mínimo e máximo**, com gráfico de distribuição. As amostras podem ser marcadas ou desmarcadas.
+- O gráfico é clicável: ao escolher uma barra (ou uma faixa personalizada de valores), a lista mostra só os preços e as atas daquela faixa.
 - Avisa quando há unidades de medida diferentes e valores muito distantes da mediana.
 - Oculta por padrão os lances de cadastro reserva (2º colocado em diante).
 - Exporta um relatório em CSV e copia um resumo pronto para o processo.

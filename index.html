@@ -92,6 +92,21 @@
   .hist .x{font-size:10.5px;color:var(--mut);white-space:nowrap}
   .legend{display:flex;align-items:center;gap:8px;margin-top:14px;font-size:12px;font-weight:500}
   .legend i{width:12px;height:12px;border-radius:3px;background:var(--pri);display:block}
+  .hist .col{cursor:pointer;border:none;background:none;padding:0;font:inherit;border-radius:8px}
+  .hist .col:hover .b{filter:brightness(.88)}
+  .hist .col:focus-visible{outline:2px solid var(--pri);outline-offset:3px}
+  .hist.ranged .col .b{opacity:.35}
+  .hist.ranged .col.sel .b{opacity:1;background:var(--navy)}
+  .hist.ranged .col.sel .n,.hist.ranged .col.sel .x{color:var(--navy);font-weight:700}
+  .hist .col[disabled]{cursor:default}
+  .hhint{font-size:11.5px;color:var(--mut);margin-top:10px}
+  .crange{display:flex;align-items:center;gap:6px;margin-top:12px;font-size:12px;color:var(--mut);flex-wrap:wrap}
+  .crange input{width:92px;border:1px solid #C9D0DA;border-radius:8px;padding:6px 8px;font-size:12.5px}
+  .crange button{border:1px solid var(--pri);background:#fff;color:var(--pri);border-radius:8px;padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer}
+  .rangebar{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--navy);color:#fff;border-radius:12px;padding:10px 14px;font-size:13px;flex-wrap:wrap}
+  .rangebar b{font-weight:700}
+  .rangebar button{background:rgba(255,255,255,.14);border:none;color:#fff;border-radius:8px;padding:5px 10px;font-size:12.5px;font-weight:600;cursor:pointer}
+  .rangebar button:hover{background:rgba(255,255,255,.24)}
   .empty-hist{height:190px;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--mut2);font-size:13px;margin-top:16px;border:1px dashed var(--line);border-radius:12px;padding:16px}
   .note{background:var(--note);border:1px solid var(--noteline);border-radius:16px;padding:18px 20px;color:var(--noteink)}
   .note b{display:block;font-size:13px;margin-bottom:6px}
@@ -197,6 +212,10 @@
         <p class="sub">Quantidade de amostras por faixa de preço (R$)</p>
         <div id="hist" class="empty-hist">O gráfico aparece quando houver ao menos 2 valores.</div>
         <div class="legend hidden" id="legend"><i></i><span id="legendTxt"></span></div>
+        <div class="hhint hidden" id="hhint">Clique numa barra para ver as atas daquela faixa. Shift + clique amplia a faixa selecionada.</div>
+        <form class="crange hidden" id="crange" autocomplete="off">
+          Faixa personalizada: R$ <input id="rMin" inputmode="decimal" placeholder="mínimo"> a R$ <input id="rMax" inputmode="decimal" placeholder="máximo"> <button type="submit">Filtrar</button>
+        </form>
       </div>
       <div class="note">
         <b>Base legal</b>
@@ -215,6 +234,7 @@
           <select id="sort"><option value="asc">Ordenar: menor valor</option><option value="desc">Ordenar: maior valor</option><option value="fim">Ordenar: vence primeiro</option><option value="dist">Ordenar: mais próximo da mediana</option></select>
         </div>
       </div>
+      <div id="rangebar"></div>
       <div id="warn"></div>
       <div id="cards">
         <div class="welcome">
@@ -383,6 +403,8 @@ async function loadRes(c, it, signal){
 // ---------- estado ----------
 let atas = [], samples = [], excl = new Set(), userTouched = new Set(), shown = 20, ctrl = null, itemTerms = {inc:[],exc:[]}, lastQuery = '', stats = null;
 let atasSemItem = 0, atasErro = 0;
+let range = null;   // faixa de preço escolhida no gráfico: {a, b, fechado}
+let bins = [];      // faixas do histograma em exibição
 
 // ---------- UI: filtros ----------
 document.querySelectorAll('label.chip input').forEach(cb => cb.onchange = () => { cb.parentElement.classList.toggle('on', cb.checked); if(cb.id === 'prim') render(); });
@@ -416,7 +438,7 @@ $('form').onsubmit = async ev => {
   ev.preventDefault();
   const q = $('q').value.trim(); if(!q) return;
   ctrl?.abort(); ctrl = new AbortController(); const signal = ctrl.signal;
-  atas = []; samples = []; excl = new Set(); userTouched = new Set(); shown = 20; atasSemItem = 0; atasErro = 0;
+  atas = []; samples = []; excl = new Set(); userTouched = new Set(); shown = 20; atasSemItem = 0; atasErro = 0; range = null;
   lastQuery = q; itemTerms = parseTerms(q);
   $('refine').value = ''; $('unit').value = ''; message(''); busy(true); render();
   const lim = +$('lim').value, soVig = $('vig').checked, soAdes = $('ades').checked;
@@ -536,12 +558,20 @@ function render(){
   $('unit').value = counts[cur] ? cur : '';
   const unitsUsed = new Set(used(list).map(s => unitKey(s.un)));
   $('warn').innerHTML = unitsUsed.size > 1 ? `<div class="warnbar">As amostras em uso têm <b>${unitsUsed.size} unidades de medida</b> diferentes. Escolha uma unidade no seletor ao lado ou desmarque as que não forem comparáveis.</div>` : '';
-  // lista
-  const nAtasCom = new Set(list.filter(s=>s.v!=null).map(s => s.ata.ctrl)).size;
+  // lista (a faixa escolhida no gráfico filtra só a lista; os indicadores seguem com todas as amostras)
+  const inRange = s => s.v != null && s.v >= range.a - 1e-9 && (range.fechado ? s.v <= range.b + 1e-9 : s.v < range.b - 1e-9);
+  const shownList = range ? list.filter(inRange) : list;
+  const nPrecos = shownList.filter(s=>s.v!=null).length, totPrecos = list.filter(s=>s.v!=null).length;
+  const nAtasCom = new Set(shownList.filter(s=>s.v!=null).map(s => s.ata.ctrl)).size;
+  const pl = (n, s, p) => n === 1 ? s : p;
   $('lTitle').textContent = !samples.length && !atas.length ? 'Nenhuma pesquisa realizada'
-    : `${list.filter(s=>s.v!=null).length.toLocaleString('pt-BR')} preço${list.filter(s=>s.v!=null).length===1?'':'s'} encontrado${list.filter(s=>s.v!=null).length===1?'':'s'} em ${nAtasCom} ata${nAtasCom===1?'':'s'}${$('vig').checked?' vigente'+(nAtasCom===1?'':'s'):''}`;
+    : `${nPrecos.toLocaleString('pt-BR')} ${pl(nPrecos,'preço','preços')} ${pl(nPrecos,'encontrado','encontrados')} em ${nAtasCom} ${pl(nAtasCom,'ata','atas')}${$('vig').checked?' '+pl(nAtasCom,'vigente','vigentes'):''}`;
+  $('rangebar').innerHTML = range
+    ? `<div class="rangebar"><span>Faixa de preço: <b>${money2(range.a)} a ${money2(range.b)}</b> · ${nPrecos} de ${totPrecos} preços · ${nAtasCom} ${pl(nAtasCom,'ata','atas')}</span><button type="button" id="clearRange">✕ Mostrar todas as faixas</button></div>`
+    : '';
+  if(range) $('clearRange').onclick = () => setRange(null);
   const sort = $('sort').value, med = st.med;
-  const sorted = [...list].sort((a,b) => {
+  const sorted = [...shownList].sort((a,b) => {
     if(a.v == null && b.v != null) return 1; if(b.v == null && a.v != null) return -1;
     if(sort === 'asc') return (a.v ?? 0) - (b.v ?? 0);
     if(sort === 'desc') return (b.v ?? 0) - (a.v ?? 0);
@@ -570,7 +600,7 @@ function render(){
         <a class="btn2" href="${esc(a.url)}" target="_blank" rel="noopener">Ver ata no PNCP ↗</a>
       </div>
     </article>`;
-  }).join('') || `<div class="welcome"><b>${ctrl && !ctrl.signal.aborted && $('stop').classList.contains('hidden') === false ? 'Buscando preços…' : 'Nenhum preço para exibir'}</b>${samples.length ? 'Ajuste os filtros acima da lista (unidade, refinar) ou o filtro “Somente 1º colocado”.' : ''}</div>`;
+  }).join('') || `<div class="welcome"><b>${ctrl && !ctrl.signal.aborted && $('stop').classList.contains('hidden') === false ? 'Buscando preços…' : 'Nenhum preço para exibir'}</b>${range ? 'Não há preços nesta faixa com os filtros atuais. Escolha outra barra no gráfico ou mostre todas as faixas.' : samples.length ? 'Ajuste os filtros acima da lista (unidade, refinar) ou o filtro “Somente 1º colocado”.' : ''}</div>`;
   const rest = sorted.length - shown;
   $('more').classList.toggle('hidden', rest <= 0);
   $('moreBtn').textContent = `Carregar mais ${Math.min(20, rest)} de ${rest} preços`;
@@ -580,18 +610,48 @@ function render(){
 }
 function renderHist(st){
   const h = $('hist');
-  if(!st.vals || st.vals.length < 2){ h.className = 'empty-hist'; h.innerHTML = 'O gráfico aparece quando houver ao menos 2 valores.'; $('legend').classList.add('hidden'); return; }
+  if(!st.vals || st.vals.length < 2){
+    h.className = 'empty-hist'; h.innerHTML = 'O gráfico aparece quando houver ao menos 2 valores.'; bins = [];
+    ['legend','hhint','crange'].forEach(id => $(id).classList.add('hidden')); return;
+  }
   const lo = Math.min(...st.vals), hi = Math.max(...st.vals);
   const nb = Math.min(7, Math.max(3, Math.ceil(Math.sqrt(st.vals.length))));
   const w = (hi - lo) / nb || 1;
-  const bins = Array.from({length: nb}, (_, i) => ({a: lo + i*w, b: lo + (i+1)*w, n: 0}));
+  bins = Array.from({length: nb}, (_, i) => ({a: lo + i*w, b: i === nb-1 ? Math.max(hi, lo + w) : lo + (i+1)*w, n: 0, last: i === nb-1}));
   st.vals.forEach(v => { const i = Math.min(nb-1, Math.floor((v - lo) / w)); bins[i].n++; });
   const mi = Math.min(nb-1, Math.floor((st.med - lo) / w)), top = Math.max(...bins.map(b => b.n));
-  h.className = 'hist';
-  h.innerHTML = bins.map((b, i) => `<div class="col" title="${money2(b.a)} a ${money2(b.b)}: ${b.n} amostra${b.n===1?'':'s'}"><span class="n">${b.n}</span><div class="b${i===mi?' med':''}" style="height:${Math.max(3, b.n/top*140)}px"></div><span class="x">${compact(b.a)}</span></div>`).join('');
-  $('legend').classList.remove('hidden');
+  // uma barra fica destacada quando está dentro da faixa escolhida
+  const sel = b => range && b.a >= range.a - 1e-9 && b.b <= range.b + 1e-9;
+  h.className = 'hist' + (range ? ' ranged' : '');
+  h.innerHTML = bins.map((b, i) => `<button type="button" class="col${sel(b)?' sel':''}" data-i="${i}" ${b.n?'':'disabled'} aria-pressed="${sel(b)?'true':'false'}" aria-label="Ver os ${b.n} preços entre ${money2(b.a)} e ${money2(b.b)}" title="${money2(b.a)} a ${money2(b.b)}: ${b.n} amostra${b.n===1?'':'s'}${b.n?' · clique para ver as atas':''}"><span class="n">${b.n}</span><span class="b${i===mi?' med':''}" style="display:block;height:${Math.max(3, b.n/top*140)}px"></span><span class="x">${compact(b.a)}</span></button>`).join('');
+  h.querySelectorAll('.col').forEach(c => c.onclick = ev => {
+    const b = bins[+c.dataset.i];
+    if(ev.shiftKey && range) setRange({a: Math.min(range.a, b.a), b: Math.max(range.b, b.b), fechado: b.last || range.fechado});
+    else if(range && Math.abs(range.a - b.a) < 1e-9 && Math.abs(range.b - b.b) < 1e-9) setRange(null);
+    else setRange({a: b.a, b: b.b, fechado: b.last});
+  });
+  ['legend','hhint','crange'].forEach(id => $(id).classList.remove('hidden'));
   $('legendTxt').textContent = `Faixa da mediana (${money2(bins[mi].a)} – ${money2(bins[mi].b)})`;
 }
+function setRange(r){
+  range = r; shown = 20;
+  $('rMin').value = r ? r.a.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2}) : '';
+  $('rMax').value = r ? r.b.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2}) : '';
+  render();
+  if(r) $('rangebar').scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+// aceita "1.234,56", "1234,56" ou "1234.56"
+const parseBR = s => { s = (s || '').replace(/[R$\s]/g, ''); if(!s) return null; if(s.includes(',')) s = s.replace(/\./g, '').replace(',', '.'); const n = Number(s); return isFinite(n) ? n : null; };
+$('crange').onsubmit = ev => {
+  ev.preventDefault();
+  let a = parseBR($('rMin').value), b = parseBR($('rMax').value);
+  if(a == null && b == null) return setRange(null);
+  const vals = samples.filter(s => s.v != null).map(s => s.v);
+  if(a == null) a = 0;
+  if(b == null) b = vals.length ? Math.max(...vals) : a;
+  if(a > b) [a, b] = [b, a];
+  setRange({a, b, fechado: true});
+};
 
 // ---------- exportação ----------
 function csvRows(){
